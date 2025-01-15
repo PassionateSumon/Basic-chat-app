@@ -1,35 +1,68 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useEffect, useRef, useState } from "react";
+import "./App.css";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [messages, setMessages] = useState(["hii"]);
+  const wsRef = useRef();
+  const inputRef = useRef();
+
+  useEffect(() => {
+    const ws = new WebSocket("ws://localhost:4000");
+    ws.onmessage = (msg) => {
+      setMessages([...messages, msg.data]);
+    };
+    wsRef.current = ws;
+
+    ws.onopen = () => {
+      ws.send(
+        JSON.stringify({
+          type: "join",
+          payload: {
+            roomId: "123",
+          },
+        })
+      );
+    };
+  }, [messages]);
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <div className="h-screen bg-[#292929] flex flex-col justify-between   ">
+      <div className="m-4">
+        {messages?.map((msg, ind) => (
+          <div
+            key={ind}
+            className="text-white text-lg border border-purple-500 w-fit px-4 py-1 rounded-lg shadow-inner shadow-purple-700 mb-3 "
+          >
+            {msg}
+          </div>
+        ))}
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
+      <div className="flex mb-4">
+        <input
+          ref={inputRef}
+          className="w-full ml-4 p-2 rounded-md  "
+          type="text"
+          placeholder="Enter message"
+        />
+        <button
+          className="w-fit text-white py-2 px-4 bg-purple-500 rounded-md mx-4 "
+          onClick={() => {
+            wsRef.current.send(
+              JSON.stringify({
+                type: "chat",
+                payload: {
+                  message: inputRef.current.value,
+                },
+              })
+            );
+            inputRef.current.value = "";
+          }}
+        >
+          Send
         </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
       </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    </div>
+  );
 }
 
-export default App
+export default App;
