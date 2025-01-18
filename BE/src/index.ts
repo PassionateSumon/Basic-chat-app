@@ -1,6 +1,5 @@
 import { WebSocketServer, WebSocket } from "ws";
 import { createServer } from "http";
-import { send } from "process";
 
 const httpServer = createServer();
 const wss = new WebSocketServer({ server: httpServer, host: "0.0.0.0" });
@@ -18,6 +17,15 @@ const genRoomId = (): string => {
 };
 
 httpServer.on("request", (req, res) => {
+  res.setHeader("Access-Control-Allow-Origin", "*"); 
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS"); 
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type"); 
+
+  if (req.method === "OPTIONS") {
+    res.writeHead(204); 
+    res.end();
+    return;
+  }
   if (req.method === "POST" && req.url === "/create-room") {
     const roomId = genRoomId();
     rooms[roomId] = [];
@@ -36,6 +44,7 @@ wss.on("connection", (socket) => {
 
       if (parsedMsg.type === "join") {
         const { name, roomId } = parsedMsg.payload;
+        console.log(name, roomId)
         if (!roomId || !rooms[roomId] || !name) {
           socket.send(
             JSON.stringify({
@@ -46,7 +55,7 @@ wss.on("connection", (socket) => {
         }
 
         rooms[roomId].push({ name, socket, room: roomId });
-        // console.log(`User joined ${roomId}`);
+        console.log(`User joined ${roomId}`);
         socket.send(
           JSON.stringify({
             success: `Joined ${roomId}`,
@@ -55,7 +64,9 @@ wss.on("connection", (socket) => {
       }
 
       if (parsedMsg.type === "chat") {
+        console.log(rooms)
         const { roomId, message } = parsedMsg.payload;
+        // console.log(roomId)
         if (!roomId || !rooms[roomId]) {
           socket.send(
             JSON.stringify({
